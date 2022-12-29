@@ -1,21 +1,22 @@
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 
 public class Message implements Serializable {
-    private String sender;
+    public InetAddress sender;
     private String text;
     private LocalDateTime dateTime;
 
-    public Message(String sender, String text) {
+    public Message(InetAddress sender, String text) {
         this.sender = sender;
         this.text = text;
     }
 
-    public String getSender() {
+    public InetAddress getSender() {
         return sender;
     }
 
-    public void setSender(String sender) {
+    public void setSender(InetAddress sender) {
         this.sender = sender;
     }
 

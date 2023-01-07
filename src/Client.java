@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -9,45 +6,82 @@ public class Client {
     // 2 потока помимо основного
     //поток отправитель сообщений
     //поток получатель сообщений
-    // driver code
-    public static void main(String[] args)
-    {
-        // establish a connection by providing host and port
-        // number
-        try (Socket socket = new Socket("localhost", 1234)) {
+    private Socket socket;
+    private BufferedReader bufferedReader;
+    private BufferedWriter bufferedWriter;
+    private String userName;
 
-            // writing to server
-            PrintWriter out = new PrintWriter(
-                    socket.getOutputStream(), true);
-
-            // reading from server
-            BufferedReader in
-                    = new BufferedReader(new InputStreamReader(
-                    socket.getInputStream()));
-
-            // object of scanner class
-            Scanner sc = new Scanner(System.in);
-            String line = null;
-
-            while (!"exit".equalsIgnoreCase(line)) {
-
-                // reading from user
-                line = sc.nextLine();
-
-                // sending the user input to server
-                out.println(line);
-                out.flush();
-
-                // displaying server reply
-                System.out.println("Server replied "
-                        + in.readLine());
-            }
-
-            // closing the scanner object
-            sc.close();
+    public Client(Socket socket, String userName){
+        try {
+            this.socket = socket;
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.userName = userName;
+        } catch (IOException e){
+            closeEverithing (socket, bufferedReader, bufferedWriter);
         }
-        catch (IOException e) {
+    }
+
+    public  void sendMessage(){
+        try {
+            bufferedWriter.write(userName);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
+            Scanner scanner = new Scanner(System.in);
+            while (socket.isConnected()){
+                String messageToSend = scanner.nextLine();
+                bufferedWriter.write(userName + ": " + messageToSend);
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+            }
+        } catch (IOException e){
+            closeEverithing (socket, bufferedReader, bufferedWriter);
+        }
+    }
+
+    public void listenForMessages (){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String messageFromChat;
+
+                while (socket.isConnected()){
+                    try {
+                        messageFromChat = bufferedReader.readLine();
+                        System.out.println(messageFromChat);
+                    } catch (IOException e){
+                        closeEverithing (socket, bufferedReader, bufferedWriter);
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public void closeEverithing(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter){
+        try {
+            if (bufferedReader != null){
+                bufferedReader.close();
+            }
+            if (bufferedWriter != null){
+                bufferedWriter.close();
+            }
+            if (socket != null){
+                socket.close();
+            }
+        } catch (IOException e){
             e.printStackTrace();
         }
     }
+
+    public static void main(String[] args) throws IOException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Введите имя для чатика: ");
+        String userName = scanner.nextLine();
+        Socket socket = new Socket("localhost", 1234);
+        Client client = new Client(socket, userName);
+        client.listenForMessages();
+        client.sendMessage();
+    }
+
 }

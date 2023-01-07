@@ -10,54 +10,43 @@ class Server {
     // добавить коллекцию подключений типа коннекшн
     //должна быть блокирующая очередь для сообщений
     //потоки удобнее написать во внутреннем классе
-    static List<Connection> connectionList = new ArrayList<>();
+    ServerSocket serverSocket; //слушает сообщения
 
-    public static void main(String[] args) {
-        ServerSocket server = null;
+    public Server(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+    }
 
+    public void startServer (){
         try {
+            while (!serverSocket.isClosed()){
+               Socket socket = serverSocket.accept();
+                System.out.println("Клиент подключен");
+                Connection connection = new Connection(socket);
 
-            // server is listening on port 1234
-            server = new ServerSocket(1234);
-            server.setReuseAddress(true);
-
-
-            // running infinite loop for getting
-            // client request
-            while (true) {
-
-                // socket object to receive incoming client
-                // requests
-                Socket client = server.accept(); //s
-
-                // Displaying that new client is connected
-                // to server
-                System.out.println("Новый клиент подключен"
-                        + client.getInetAddress()
-                        .getHostAddress());
-
-                DataInputStream dis = new DataInputStream(client.getInputStream());
-                DataOutputStream dos = new DataOutputStream(client.getOutputStream());
-
-                // create a new thread object
-                Connection <Message> clientSock = new Connection<>(client);
-                // This thread will handle the client
-                // separately
-                Thread t = new Thread(clientSock);
-                connectionList.add(clientSock);
-
-                t.start();
+                Thread thread = new Thread(connection);
+                thread.start();
             }
-        } catch (IOException e) {
+        }catch (IOException e){
+
+        }
+
+    }
+
+    public void closeServer(){
+        try {
+            if (serverSocket != null){
+                serverSocket.close();
+            }
+        } catch (IOException e){
             e.printStackTrace();
-        } finally {
-            if (server != null) {
-                try {
-                    server.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
+
+    public static void main(String[] args) throws IOException {
+
+        ServerSocket serverSocket = new ServerSocket(1234);
+        Server server = new Server(serverSocket);
+        server.startServer();
+    }
+
 }
